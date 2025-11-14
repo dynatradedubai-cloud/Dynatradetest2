@@ -167,3 +167,26 @@ if page == "Admin Portal":
                 st.error(f"Error reading user file: {e}")
     else:
         st.warning("Please login as Admin to access upload options.")
+
+# -------------------- TROUBLESHOOTING --------------------
+st.sidebar.markdown("### Troubleshooting")
+st.sidebar.info("""
+**Common Issues:**
+1. **IP Mismatch:**  
+   - Ensure your IP matches the one in the uploaded user credentials file.
+   - Use https://whatismyipaddress.com to verify.
+
+2. **Invalid Username/Password:**  
+   - Check spelling and case sensitivity.
+   - Admin default: `admin / admin123`.
+
+3. **File Format Errors:**  
+   - Price List: Use `.xlsx`, `.xls`, or `.csv`.
+   - Campaign: Supports Excel, PDF, images, Word.
+   - User Credentials: Must have columns `Username`, `Password`, `IP`.
+
+4. **No Submit Button on Mobile:**  
+   - Fixed in this version using `Login` button in forms.
+
+If issues persist, contact: **52etrk51@dynatradegroup.com**
+""")
