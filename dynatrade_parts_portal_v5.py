@@ -117,14 +117,14 @@ if page == "Customer Portal":
 
                 if st.button("Clear Cart"):
                     st.session_state['cart'] = []
-                    st.experimental_rerun()
+                    st.success("Cart cleared successfully!")
             else:
                 st.write("Cart is empty.")
 
         if st.button("Logout"):
             st.session_state['customer_logged_in'] = False
             st.session_state['customer_username'] = ""
-            st.experimental_rerun()
+            st.success("Logged out successfully!")
 
 # -------------------- ADMIN PORTAL --------------------
 if page == "Admin Portal":
@@ -183,4 +183,4 @@ if page == "Admin Portal":
         # Logout option
         if st.button("Logout"):
             st.session_state['admin_logged_in'] = False
-            st.experimental_rerun()
+            st.success("Admin logged out successfully!")
