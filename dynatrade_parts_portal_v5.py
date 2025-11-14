@@ -90,8 +90,7 @@ if page == "Customer Portal":
             call_number = "+971504815087"
             email_id = "52etrk51@dynatradegroup.com"
 
-            whatsapp_message = "Inquiry for parts:
-" + cart_df.to_string(index=False)
+            whatsapp_message = "Inquiry for parts:\n" + cart_df.to_string(index=False)
             whatsapp_link = f"https://wa.me/{whatsapp_number}?text={whatsapp_message}"
             email_body = cart_df.to_string(index=False)
             mailto_link = f"mailto:{email_id}?subject=Parts Inquiry&body={email_body}"
