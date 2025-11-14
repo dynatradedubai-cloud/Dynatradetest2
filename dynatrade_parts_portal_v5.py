@@ -1,72 +1,70 @@
-
 import streamlit as st
 import pandas as pd
-import datetime
-import base64
 import requests
 
+# Page config
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
+st.title("Dynatrade Automotive LLC - Parts Portal")
 
-# ------------------- MULTIPAGE NAVIGATION -------------------
-page = st.sidebar.radio("Navigate", ["Customer Portal", "Admin Portal"])
-
-# ------------------- SESSION STATE -------------------
-if 'cart' not in st.session_state:
-    st.session_state['cart'] = []
-if 'price_df' not in st.session_state:
-    st.session_state['price_df'] = None
-if 'campaign_file' not in st.session_state:
-    st.session_state['campaign_file'] = None
-if 'users_df' not in st.session_state:
-    st.session_state['users_df'] = pd.DataFrame(columns=['Username','Password','IP'])
-
-# Function to get real client IP using external service
-@st.cache_data(show_spinner=False)
+# Function to get real IP (server-side fallback)
 def get_client_ip():
     try:
         return requests.get('https://api.ipify.org').text
     except:
-        return 'UNKNOWN'
+        return "UNKNOWN"
 
-# ------------------- CUSTOMER PORTAL -------------------
-if page == "Customer Portal":
-    st.title("Customer Portal")
+# Initialize session state for cart
+if 'cart' not in st.session_state:
+    st.session_state['cart'] = []
+
+# Sidebar for file upload
+st.sidebar.header("Upload Parts List")
+uploaded_file = st.sidebar.file_uploader("Upload Parts List", type=["csv", "xlsx", "xls"])
+
+# Admin login form
+st.sidebar.subheader("Admin Login")
+with st.sidebar.form("admin_login_form"):
+    admin_user = st.text_input("Admin Username")
+    admin_pass = st.text_input("Admin Password", type="password")
+    admin_submit = st.form_submit_button("Login")
+
+if admin_submit:
+    if admin_user == "admin" and admin_pass == "admin123":
+        st.sidebar.success("Admin Login Successful")
+    else:
+        st.sidebar.error(f"Invalid Username or Password (IP: {get_client_ip()})")
+
+# Customer login form
+st.subheader("Customer Login")
+with st.form("customer_login_form"):
     username = st.text_input("Customer Username")
     password = st.text_input("Password", type="password")
+    submitted = st.form_submit_button("Login")
 
-    valid_user = False
-    if not st.session_state['users_df'].empty:
-        try:
-            user_row = st.session_state['users_df'][(st.session_state['users_df']['Username']==username) & (st.session_state['users_df']['Password']==password)]
-            if not user_row.empty:
-                client_ip = get_client_ip()
-                if client_ip in user_row['IP'].values:
-                    valid_user = True
-                else:
-                    st.error(f"Access denied: IP {client_ip} not allowed")
-        except KeyError:
-            st.error("User file missing required columns: Username, Password, IP")
-
-    if valid_user:
+if submitted:
+    if username == "customer1" and password == "pass123":
         st.success("Login Successful")
+    else:
+        st.error(f"Invalid Username or Password (IP: {get_client_ip()})")
 
-        if st.session_state['campaign_file']:
-            st.write("### Special Campaign")
-            file_name, file_bytes = st.session_state['campaign_file']
-            b64 = base64.b64encode(file_bytes).decode()
-            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
-            st.markdown(href, unsafe_allow_html=True)
+# File upload and search
+if uploaded_file:
+    try:
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file, encoding="latin1")
+        elif uploaded_file.name.endswith(".xlsx"):
+            df = pd.read_excel(uploaded_file, engine="openpyxl")
+        else:
+            df = pd.read_excel(uploaded_file, engine="xlrd")
 
-        if st.session_state['price_df'] is not None:
-            st.write("### Search for Parts")
-            search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-            df = st.session_state['price_df']
-
-            if search_term:
-                results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+        st.write("### Search for Parts")
+        search_term = st.text_input("Enter Original Part No.")
+        if search_term:
+            if 'Original Part No.' in df.columns:
+                results = df[df['Original Part No.'].astype(str).str.contains(search_term, case=False, na=False)]
                 st.write(f"Found {len(results)} matching parts:")
-
                 if len(results) > 0:
+                    # Add 'Add to Cart' column
                     results = results.copy()
                     results['Add to Cart'] = ''
                     st.write("### Matching Parts")
@@ -78,78 +76,26 @@ if page == "Customer Portal":
                             st.session_state['cart'].append(row[:-1].to_dict())
                 else:
                     st.warning("No matching parts found.")
-                    st.info("Notification sent to salesman: 52etrk51@dynatradegroup.com")
-                    st.write(f"Customer: {username}, Part: {search_term}, Time: {datetime.datetime.now()}")
+            else:
+                st.error("Column 'Original Part No.' not found in uploaded file.")
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
 
-        st.write("### Your Cart")
-        if st.session_state['cart']:
-            cart_df = pd.DataFrame(st.session_state['cart'])
-            st.table(cart_df)
+# Display Cart
+st.write("### Your Cart")
+if st.session_state['cart']:
+    cart_df = pd.DataFrame(st.session_state['cart'])
+    st.table(cart_df)
 
-            whatsapp_number = "+97165132219"
-            call_number = "+971504815087"
-            email_id = "52etrk51@dynatradegroup.com"
+    whatsapp_message = "Inquiry for parts: " + ", ".join(cart_df['Original Part No.'].tolist())
+    whatsapp_number = "971501234567"
+    whatsapp_link = f"https://wa.me/{whatsapp_number}?text={whatsapp_message}"
+    email_body = "Inquiry for parts:\n" + cart_df.to_string(index=False)
+    mailto_link = f"mailto:sales@dynatrade.com?subject=Parts Inquiry&body={email_body}"
 
-            whatsapp_message = "Inquiry for parts:\n" + cart_df.to_string(index=False)
-            whatsapp_link = f"https://wa.me/{whatsapp_number}?text={whatsapp_message}"
-            email_body = cart_df.to_string(index=False)
-            mailto_link = f"mailto:{email_id}?subject=Parts Inquiry&body={email_body}"
+    st.markdown(f"[Send via WhatsApp]({whatsapp_link})")
+    st.markdown(f"[Send via Email]({mailto_link})")
 
-            st.markdown(f"[Send via WhatsApp]({whatsapp_link})")
-            st.markdown(f"[Send via Email]({mailto_link})")
-            st.markdown(f"[Call Salesman](tel:{call_number})")
-
-            if st.button("Clear Cart"):
-                st.session_state['cart'] = []
-                st.experimental_rerun()
-        else:
-            st.write("Cart is empty.")
-
-    else:
-        st.warning("Please login to access the portal.")
-
-# ------------------- ADMIN PORTAL -------------------
-if page == "Admin Portal":
-    st.title("Admin Portal")
-    admin_user = st.text_input("Admin Username")
-    admin_pass = st.text_input("Password", type="password")
-
-    if admin_user == "admin" and admin_pass == "admin123":
-        st.success("Admin Login Successful")
-
-        st.write("### Upload Price List")
-        price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"])
-        if price_file:
-            try:
-                if price_file.name.endswith(".csv"):
-                    df = pd.read_csv(price_file, encoding="latin1")
-                elif price_file.name.endswith(".xlsx"):
-                    df = pd.read_excel(price_file, engine="openpyxl")
-                else:
-                    df = pd.read_excel(price_file, engine="xlrd")
-                st.session_state['price_df'] = df
-                st.success("Price List uploaded successfully!")
-            except Exception as e:
-                st.error(f"Error reading file: {e}")
-
-        st.write("### Upload Campaign File")
-        campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
-        if campaign_file:
-            st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-            st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
-
-        st.write("### Upload User Credentials")
-        user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"])
-        if user_file:
-            try:
-                if user_file.name.endswith(".csv"):
-                    udf = pd.read_csv(user_file)
-                else:
-                    udf = pd.read_excel(user_file, engine="openpyxl")
-                st.session_state['users_df'] = udf
-                st.success("User credentials updated successfully!")
-                st.dataframe(udf)
-            except Exception as e:
-                st.error(f"Error reading user file: {e}")
-    else:
-        st.warning("Please login as Admin to access upload options.")
+    if st.button("Clear Cart"):
+        st.session_state['cart'] = []
+        st.experimental_rerun()
