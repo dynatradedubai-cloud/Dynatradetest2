@@ -148,7 +148,9 @@ if page == "Admin Portal":
         if price_file:
             try:
                 if price_file.name.endswith(".csv"):
-                    df = pd.read_csv(price_file, encoding= pd.read_excel(price_file, engine="openpyxl")
+                    df = pd.read_csv(price_file, encoding="latin1")
+                elif price_file.name.endswith(".xlsx"):
+                    df = pd.read_excel(price_file, engine="openpyxl")
                 else:
                     df = pd.read_excel(price_file, engine="xlrd")
                 st.session_state['price_df'] = df
