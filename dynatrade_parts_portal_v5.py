@@ -20,6 +20,10 @@ if 'users_df' not in st.session_state:
     st.session_state['users_df'] = pd.DataFrame(columns=['Username', 'Password', 'IP'])
 if 'admin_logged_in' not in st.session_state:
     st.session_state['admin_logged_in'] = False
+if 'customer_logged_in' not in st.session_state:
+    st.session_state['customer_logged_in'] = False
+if 'customer_username' not in st.session_state:
+    st.session_state['customer_username'] = ""
 
 # Function to get real client IP using external service
 @st.cache_data(show_spinner=False)
@@ -33,32 +37,32 @@ def get_client_ip():
 if page == "Customer Portal":
     st.title("Customer Portal")
 
-    # Use form for better mobile UX
-    with st.form("login_form"):
-        username = st.text_input("Customer Username")
-        password = st.text_input("Password", type="password")
-        submit_login = st.form_submit_button("Login")
+    if not st.session_state['customer_logged_in']:
+        with st.form("login_form"):
+            username = st.text_input("Customer Username")
+            password = st.text_input("Password", type="password")
+            submit_login = st.form_submit_button("Login")
 
-    valid_user = False
-    if submit_login:
-        if not st.session_state['users_df'].empty:
-            user_row = st.session_state['users_df'][
-                (st.session_state['users_df']['Username'] == username) &
-                (st.session_state['users_df']['Password'] == password)
-            ]
-            if not user_row.empty:
-                client_ip = get_client_ip()
-                if client_ip in user_row['IP'].values:
-                    valid_user = True
+        if submit_login:
+            if not st.session_state['users_df'].empty:
+                user_row = st.session_state['users_df'][
+                    (st.session_state['users_df']['Username'] == username) &
+                    (st.session_state['users_df']['Password'] == password)
+                ]
+                if not user_row.empty:
+                    client_ip = get_client_ip()
+                    if client_ip in user_row['IP'].values:
+                        st.session_state['customer_logged_in'] = True
+                        st.session_state['customer_username'] = username
+                        st.success("Login Successful")
+                    else:
+                        st.error(f"Access denied: IP {client_ip} not allowed")
                 else:
-                    st.error(f"Access denied: IP {client_ip} not allowed")
+                    st.error(f"Invalid username or password (IP: {get_client_ip()})")
             else:
-                st.error(f"Invalid username or password (IP: {get_client_ip()})")
-        else:
-            st.warning("User credentials file not loaded.")
-
-    if valid_user:
-        st.success("Login Successful")
+                st.warning("User credentials file not loaded.")
+    else:
+        st.success(f"Welcome, {st.session_state['customer_username']}!")
 
         # Campaign file download
         if st.session_state['campaign_file']:
@@ -91,7 +95,7 @@ if page == "Customer Portal":
 
                 # Notification
                 st.info("Notification sent to salesman: 52etrk51@dynatradegroup.com")
-                st.write(f"Customer: {username}, Part: {search_term}, Time: {datetime.datetime.now()}")
+                st.write(f"Customer: {st.session_state['customer_username']}, Part: {search_term}, Time: {datetime.datetime.now()}")
 
             # Cart display
             st.write("### Your Cart")
@@ -108,7 +112,7 @@ if page == "Customer Portal":
                 mailto_link = f"mailto:{email_id}?subject=Parts Inquiry&body={email_body}"
 
                 st.markdown(f"[Send via WhatsApp]({whatsapp_link})")
-                st.markdown(f"{mailto_link}")
+                st.markdown(f"[Send via Email]({mailto_link})")
                 st.markdown(f"[Call Salesman](tel:{call_number})")
 
                 if st.button("Clear Cart"):
@@ -116,8 +120,11 @@ if page == "Customer Portal":
                     st.experimental_rerun()
             else:
                 st.write("Cart is empty.")
-    else:
-        st.warning("Please login to access the portal.")
+
+        if st.button("Logout"):
+            st.session_state['customer_logged_in'] = False
+            st.session_state['customer_username'] = ""
+            st.experimental_rerun()
 
 # -------------------- ADMIN PORTAL --------------------
 if page == "Admin Portal":
@@ -141,9 +148,7 @@ if page == "Admin Portal":
         if price_file:
             try:
                 if price_file.name.endswith(".csv"):
-                    df = pd.read_csv(price_file, encoding="latin1")
-                elif price_file.name.endswith(".xlsx"):
-                    df = pd.read_excel(price_file, engine="openpyxl")
+                    df = pd.read_csv(price_file, encoding= pd.read_excel(price_file, engine="openpyxl")
                 else:
                     df = pd.read_excel(price_file, engine="xlrd")
                 st.session_state['price_df'] = df
@@ -176,4 +181,4 @@ if page == "Admin Portal":
         # Logout option
         if st.button("Logout"):
             st.session_state['admin_logged_in'] = False
-            st.experimental_rerun()<FULL FINAL CODE FROM PREVIOUS MESSAGE>
+            st.experimental_rerun()
