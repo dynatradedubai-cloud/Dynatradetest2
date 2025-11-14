@@ -53,7 +53,7 @@ if page == "Customer Portal":
                 else:
                     st.error(f"Access denied: IP {client_ip} not allowed")
             else:
-                st.error("Invalid username or password")
+                st.error(f"Invalid username or password (IP: {get_client_ip()})")
         else:
             st.warning("User credentials file not loaded.")
 
