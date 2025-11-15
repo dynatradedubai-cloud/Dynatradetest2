@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import datetime
+from datetime import datetime
 import base64
 import requests
 from io import BytesIO
@@ -187,7 +187,7 @@ if page == "Admin Portal":
                         else:
                             df = pd.read_excel(price_file, engine="xlrd")
                         st.session_state['price_df'] = df
-                        st.session_state['price_upload_time'] = datetime.datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+                        st.session_state['price_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
                         st.session_state['last_price_file'] = file_info
                         st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
                     except Exception as e:
@@ -201,7 +201,7 @@ if page == "Admin Portal":
                 file_info = (campaign_file.name, campaign_file.size)
                 if st.session_state['last_campaign_file'] != file_info:
                     st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-                    st.session_state['campaign_upload_time'] = datetime.datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+                    st.session_state['campaign_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
                     st.session_state['last_campaign_file'] = file_info
                     st.success(f"Campaign File uploaded successfully at {st.session_state['campaign_upload_time']}!")
             st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
@@ -218,7 +218,7 @@ if page == "Admin Portal":
                         else:
                             udf = pd.read_excel(user_file, engine="openpyxl")
                         st.session_state['users_df'] = udf
-                        st.session_state['user_upload_time'] = datetime.datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+                        st.session_state['user_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
                         st.session_state['last_user_file'] = file_info
                         st.success(f"User credentials updated successfully at {st.session_state['user_upload_time']}!")
                         st.dataframe(udf)
@@ -227,7 +227,6 @@ if page == "Admin Portal":
             st.write(f"**Last User Credentials Upload:** {st.session_state['user_upload_time'] or 'No file uploaded yet'}")
 
             # Logout option
-            if st.button("Logout"):
-                st.session_state['admin_logged_in'] = False
+            ifed_in'] = False
                 st.success("Admin logged out successfully!")
                 st.rerun()
