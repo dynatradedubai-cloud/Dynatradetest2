@@ -58,7 +58,7 @@ if page == "Dynatrade – Customer Portal":
                         st.session_state['customer_logged_in'] = True
                         st.session_state['customer_username'] = username
                         st.success("Login Successful")
-                        st.rerun()  # ✅ Immediate refresh
+                        st.rerun()  # Immediate refresh
                     else:
                         st.error(f"Access denied: IP {client_ip} not allowed")
                 else:
@@ -76,7 +76,7 @@ if page == "Dynatrade – Customer Portal":
             href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
             st.markdown(href, unsafe_allow_html=True)
 
-        # ✅ Show search and cart only if logged in
+        # Show search and cart only if logged in
         if st.session_state['price_df'] is not None:
             st.write("### Search for Parts")
             search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
@@ -131,7 +131,7 @@ if page == "Dynatrade – Customer Portal":
             st.session_state.pop('search_results', None)
             st.session_state['cart'] = []
             st.success("Logged out successfully!")
-            st.rerun()  # ✅ Refresh after logout
+            st.rerun()  # Refresh after logout
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -144,7 +144,7 @@ if page == "Admin Portal":
             if admin_user == "admin" and admin_pass == "admin123":
                 st.session_state['admin_logged_in'] = True
                 st.success("Admin Login Successful")
-                st.rerun()  # ✅ Immediate refresh
+                st.rerun()  # Immediate refresh
             else:
                 st.error("Invalid Admin Credentials")
     else:
@@ -158,7 +158,9 @@ if page == "Admin Portal":
             if price_file.name.endswith(".csv"):
                 df = pd.read_csv(price_file, encoding="latin1")
             elif price_file.name.endswith(".xlsx"):
-                df = pd.read_excel(price_file, engine             df = pd.read_excel(price_file, engine="xlrd")
+                df = pd.read_excel(price_file, engine="openpyxl")
+            else:
+                df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
             st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
@@ -199,4 +201,4 @@ if page == "Admin Portal":
     if st.button("Logout"):
         st.session_state['admin_logged_in'] = False
         st.success("Admin logged out successfully!")
-        st.rerun()  # ✅ Refresh after logout
+        st.rerun()  # Refresh after logout
