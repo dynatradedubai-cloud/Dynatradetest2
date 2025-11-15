@@ -202,7 +202,8 @@ if page == "Admin Portal":
         file_info = (campaign_file.name, campaign_file.size)
         if st.session_state['last_campaign_file'] != file_info:
             st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-            st.session_state['campaign_upload_time'] = datetime.datetime.now().strftime("%d-%m= file_info
+            st.session_state['campaign_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            st.session_state['last_campaign_file'] = file_info
             st.success(f"Campaign File uploaded successfully at {st.session_state['campaign_upload_time']}!")
 
     st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
