@@ -7,6 +7,28 @@ import requests
 # -------------------- PAGE CONFIG --------------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
 
+# Add custom CSS for background image and logo
+st.markdown(
+    """
+    <style>
+    body {
+        background-image: url('https://your-image-url/european-car-truck.jpg');
+        background-size: cover;
+    }
+    .logo {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        width: 150px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Display Dynatrade logo
+st.markdown('<img src="https://your-logo-url/dynatrade-logo.png" class="logo">', unsafe_allow_html=True)
+
 # -------------------- MULTIPAGE NAVIGATION --------------------
 page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
 
@@ -25,8 +47,6 @@ if 'customer_logged_in' not in st.session_state:
     st.session_state['customer_logged_in'] = False
 if 'customer_username' not in st.session_state:
     st.session_state['customer_username'] = ""
-if 'upload_times' not in st.session_state:
-    st.session_state['upload_times'] = {"Price List": None, "Campaign": None, "User Credentials": None}
 
 # Function to get real client IP using ipify
 @st.cache_data(show_spinner=False)
@@ -79,11 +99,12 @@ if page == "Dynatrade – Customer Portal":
         if st.session_state['price_df'] is not None:
             st.write("### Search for Parts")
             search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-            check_button = st.button("Check")
-            if check_button and search_term:
-                results = st.session_state['price_df'][st.session_state['price_df'].apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+            df = st.session_state['price_df']
+            if search_term:
+                results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
                 if len(results) > 0:
                     st.write("### Matching Parts")
+                    # Add headers including Required Qty and Add to Cart
                     header_cols = st.columns(len(results.columns) + 2)
                     for i, col_name in enumerate(results.columns):
                         header_cols[i].write(col_name)
@@ -93,32 +114,25 @@ if page == "Dynatrade – Customer Portal":
                     for idx, row in results.iterrows():
                         cols = st.columns(len(row) + 2)
                         for i, val in enumerate(row):
-                            if isinstance(val, (int, float)):
-                                cols[i].write(f"{val:.2f}")
-                            else:
-                                cols[i].write(val)
+                            cols[i].write(val)
                         qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
-                        # Unique key ensures proper state handling
-                        if cols[-1].button("Add", key=f"add_to_cart_{idx}"):
+                        if cols[-1].button("Add", key=f"add_{idx}"):
                             item = row.to_dict()
                             item['Required Qty'] = qty
                             st.session_state['cart'].append(item)
-                            st.success("Item added to cart!")
                 else:
                     st.warning("No matching parts found.")
 
             # Cart display
             st.write("### Your Cart")
             if st.session_state['cart']:
-                cart_df = pd.DataFrame(st.session_state['cart']).reset_index(drop=True)
-                if 'Unit Price in AED' in cart_df.columns:
-                    cart_df['Unit Price in AED'] = cart_df['Unit Price in AED'].apply(lambda x: f"{float(x):.2f}" if str(x).replace('.', '', 1).isdigit() else x)
-                st.table(cart_df)
+                cart_df = pd.DataFrame(st.session_state['cart'])
+                st.table(cart_df.style.hide(axis="index"))
 
                 # Static links for WhatsApp and Email
                 st.markdown("""
                 Send your requirement in  
-                **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
+                **Business WhatsApp** - [Click Here](https://wa.me/+97165132219?text=Inquiry)  
                 **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
                 **OR Contact Sales Man** – Mr. Binay +971 50 4815087
                 """)
@@ -162,7 +176,6 @@ if page == "Admin Portal":
                 else:
                     df = pd.read_excel(price_file, engine="xlrd")
                 st.session_state['price_df'] = df
-                st.session_state['upload_times']['Price List'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 st.success("Price List uploaded successfully!")
             except Exception as e:
                 st.error(f"Error reading file: {e}")
@@ -172,7 +185,6 @@ if page == "Admin Portal":
         campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
         if campaign_file:
             st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-            st.session_state['upload_times']['Campaign'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
 
         # Upload User Credentials
@@ -185,16 +197,10 @@ if page == "Admin Portal":
                 else:
                     udf = pd.read_excel(user_file, engine="openpyxl")
                 st.session_state['users_df'] = udf
-                st.session_state['upload_times']['User Credentials'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 st.success("User credentials updated successfully!")
                 st.dataframe(udf)
             except Exception as e:
                 st.error(f"Error reading user file: {e}")
-
-        # Show last upload times
-        st.write("### Last Upload Times")
-        for key, val in st.session_state['upload_times'].items():
-            st.write(f"{key}: {val if val else 'Not uploaded yet'}")
 
         # Logout option
         if st.button("Logout"):
