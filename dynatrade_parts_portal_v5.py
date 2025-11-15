@@ -4,35 +4,19 @@ import datetime
 import base64
 import requests
 
-# -------------------- PAGE CONFIG --------------------
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
 
 # Add custom CSS for background image and logo
-st.markdown(
-    """
-    <style>
-    body {
-        background-image: url('https://your-image-url/european-car-truck.jpg');
-        background-size: cover;
-    }
-    .logo {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        width: 150px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(""" """, unsafe_allow_html=True)
 
 # Display Dynatrade logo
-st.markdown('<img src="https://your-logo-url/dynatrade-logo.png" class="logo">', unsafe_allow_html=True)
+st.markdown(' ', unsafe_allow_html=True)
 
-# -------------------- MULTIPAGE NAVIGATION --------------------
+# ---------------- MULTIPAGE NAVIGATION ----------------
 page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
 
-# -------------------- SESSION STATE --------------------
+# ---------------- SESSION STATE ----------------
 if 'cart' not in st.session_state:
     st.session_state['cart'] = []
 if 'price_df' not in st.session_state:
@@ -56,7 +40,7 @@ def get_client_ip():
     except:
         return 'UNKNOWN'
 
-# -------------------- CUSTOMER PORTAL --------------------
+# ---------------- CUSTOMER PORTAL ----------------
 if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
@@ -92,15 +76,17 @@ if page == "Dynatrade – Customer Portal":
             st.write("### Special Campaign")
             file_name, file_bytes = st.session_state['campaign_file']
             b64 = base64.b64encode(file_bytes).decode()
-            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
+            href = f'[Download Campaign File](data:application/octet-stream;base64,{b64})'
             st.markdown(href, unsafe_allow_html=True)
 
         # Price list search
         if st.session_state['price_df'] is not None:
             st.write("### Search for Parts")
             search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
+            check_search = st.button("Check")  # ✅ Added Check button
+
             df = st.session_state['price_df']
-            if search_term:
+            if search_term and check_search:  # ✅ Trigger search only when Check is clicked
                 results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
                 if len(results) > 0:
                     st.write("### Matching Parts")
@@ -117,46 +103,40 @@ if page == "Dynatrade – Customer Portal":
                         qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
                         if cols[-1].button("Add", key=f"add_{idx}"):
                             item = row.to_dict()
-
-                            # ✅ Round Unit Price to 2 decimals
                             if 'Unit Price' in item:
                                 item['Unit Price'] = round(float(item['Unit Price']), 2)
-
                             item['Required Qty'] = qty
                             st.session_state['cart'].append(item)
                 else:
                     st.warning("No matching parts found.")
 
-            # Cart display
-            st.write("### Your Cart")
-            if st.session_state['cart']:
-                cart_df = pd.DataFrame(st.session_state['cart'])
+        # Cart display
+        st.write("### Your Cart")
+        if st.session_state['cart']:
+            cart_df = pd.DataFrame(st.session_state['cart'])
+            if 'Unit Price' in cart_df.columns:
+                cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
+            st.dataframe(cart_df)
 
-                # ✅ Format Unit Price to two decimals for display
-                if 'Unit Price' in cart_df.columns:
-                    cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
+            st.markdown("""
+            Send your requirement in **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
+            **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
+            **OR Contact Sales Man** – Mr. Binay +971 50 4815087
+            """)
 
-                st.dataframe(cart_df)  # ✅ Fixed error
-
-                st.markdown("""
-                Send your requirement in  
-                **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
-                **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
-                **OR Contact Sales Man** – Mr. Binay +971 50 4815087
-                """)
-
-                if st.button("Clear Cart"):
-                    st.session_state['cart'] = []
-                    st.success("Cart cleared successfully!")
-            else:
-                st.write("Cart is empty.")
+            if st.button("Clear Cart"):
+                st.session_state['cart'] = []
+                search_term = ""  # ✅ Reset search term
+                st.success("Cart and search results cleared successfully!")
+        else:
+            st.write("Cart is empty.")
 
         if st.button("Logout"):
             st.session_state['customer_logged_in'] = False
             st.session_state['customer_username'] = ""
             st.success("Logged out successfully!")
 
-# -------------------- ADMIN PORTAL --------------------
+# ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
     st.title("Admin Portal")
 
@@ -172,45 +152,45 @@ if page == "Admin Portal":
     else:
         st.success("Admin Logged In")
 
-        # Upload Price List
-        st.write("### Upload Price List")
-        price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"])
-        if price_file:
-            try:
-                if price_file.name.endswith(".csv"):
-                    df = pd.read_csv(price_file, encoding="latin1")
-                elif price_file.name.endswith(".xlsx"):
-                    df = pd.read_excel(price_file, engine="openpyxl")
-                else:
-                    df = pd.read_excel(price_file, engine="xlrd")
-                st.session_state['price_df'] = df
-                st.success("Price List uploaded successfully!")
-            except Exception as e:
-                st.error(f"Error reading file: {e}")
+    # Upload Price List
+    st.write("### Upload Price List")
+    price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"])
+    if price_file:
+        try:
+            if price_file.name.endswith(".csv"):
+                df = pd.read_csv(price_file, encoding="latin1")
+            elif price_file.name.endswith(".xlsx"):
+                df = pd.read_excel(price_file, engine="openpyxl")
+            else:
+                df = pd.read_excel(price_file, engine="xlrd")
+            st.session_state['price_df'] = df
+            st.success("Price List uploaded successfully!")
+        except Exception as e:
+            st.error(f"Error reading file: {e}")
 
-        # Upload Campaign File
-        st.write("### Upload Campaign File")
-        campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
-        if campaign_file:
-            st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-            st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
+    # Upload Campaign File
+    st.write("### Upload Campaign File")
+    campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
+    if campaign_file:
+        st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
+        st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
 
-        # Upload User Credentials
-        st.write("### Upload User Credentials")
-        user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"])
-        if user_file:
-            try:
-                if user_file.name.endswith(".csv"):
-                    udf = pd.read_csv(user_file)
-                else:
-                    udf = pd.read_excel(user_file, engine="openpyxl")
-                st.session_state['users_df'] = udf
-                st.success("User credentials updated successfully!")
-                st.dataframe(udf)
-            except Exception as e:
-                st.error(f"Error reading user file: {e}")
+    # Upload User Credentials
+    st.write("### Upload User Credentials")
+    user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"])
+    if user_file:
+        try:
+            if user_file.name.endswith(".csv"):
+                udf = pd.read_csv(user_file)
+            else:
+                udf = pd.read_excel(user_file, engine="openpyxl")
+            st.session_state['users_df'] = udf
+            st.success("User credentials updated successfully!")
+            st.dataframe(udf)
+        except Exception as e:
+            st.error(f"Error reading user file: {e}")
 
-        # Logout option
-        if st.button("Logout"):
-            st.session_state['admin_logged_in'] = False
-            st.success("Admin logged out successfully!")
+    # Logout option
+    if st.button("Logout"):
+        st.session_state['admin_logged_in'] = False
+        st.success("Admin logged out successfully!")
