@@ -42,7 +42,7 @@ for key in ['last_price_file', 'last_campaign_file', 'last_user_file']:
 if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
-    # Inject JavaScript to fetch client IP and populate hidden input
+    # Inject JavaScript to fetch client IP and display it
     st.markdown("""
     <script>
     fetch('https://api.ipify.org?format=json')
@@ -50,31 +50,24 @@ if page == "Dynatrade – Customer Portal":
       .then(data => {
         const ipInput = window.parent.document.getElementById('client-ip');
         if (ipInput) ipInput.value = data.ip;
+        const displayDiv = window.parent.document.getElementById('ip-display');
+        if (displayDiv) displayDiv.innerText = 'Detected IP: ' + data.ip;
       });
     </script>
     """, unsafe_allow_html=True)
 
+    # Hidden HTML input for IP
+    st.markdown('<input id="client-ip" type="hidden">', unsafe_allow_html=True)
+
+    # Visible IP display
+    st.markdown('<div id="ip-display" style="font-weight:bold;color:green;margin-bottom:10px;">Detecting IP...</div>', unsafe_allow_html=True)
+
+    # Streamlit text input for IP (optional for debugging)
+    client_ip = st.text_input("Your IP (auto-detected)", key="client_ip_display")
+
     if not st.session_state['customer_logged_in']:
         username = st.text_input("Customer Username")
         password = st.text_input("Password", type="password")
-
-        # Hidden HTML input for IP
-        st.markdown('<input id="client-ip" type="hidden">', unsafe_allow_html=True)
-        client_ip = st.text_input("Your IP will appear here", key="client_ip_display")
-
-        # Sync hidden input value to Streamlit text input using JS
-        st.markdown("""
-        <script>
-        const observer = new MutationObserver(() => {
-          const ipInput = document.getElementById('client-ip');
-          const displayInput = window.parent.document.querySelector('input[data-testid="stTextInput"][aria-label="Your IP will appear here"]');
-          if (ipInput && displayInput) {
-            displayInput.value = ipInput.value;
-          }
-        });
-        observer.observe(document.getElementById('client-ip'), { attributes: true, attributeFilter: ['value'] });
-        </script>
-        """, unsafe_allow_html=True)
 
         if st.button("Login"):
             if not st.session_state['users_df'].empty:
