@@ -227,6 +227,7 @@ if page == "Admin Portal":
             st.write(f"**Last User Credentials Upload:** {st.session_state['user_upload_time'] or 'No file uploaded yet'}")
 
             # Logout option
-            ifed_in'] = False
+            if st.button("Logout"):
+                st.session_state['admin_logged_in'] = False
                 st.success("Admin logged out successfully!")
                 st.rerun()
