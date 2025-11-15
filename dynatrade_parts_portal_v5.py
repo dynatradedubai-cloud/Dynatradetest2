@@ -98,10 +98,12 @@ if page == "Dynatrade – Customer Portal":
                             else:
                                 cols[i].write(val)
                         qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
-                        if cols[-1].button("Add", key=f"add_{idx}"):
+                        # Unique key ensures proper state handling
+                        if cols[-1].button("Add", key=f"add_to_cart_{idx}"):
                             item = row.to_dict()
                             item['Required Qty'] = qty
                             st.session_state['cart'].append(item)
+                            st.success("Item added to cart!")
                 else:
                     st.warning("No matching parts found.")
 
