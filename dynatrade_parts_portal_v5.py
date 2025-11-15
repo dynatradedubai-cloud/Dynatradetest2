@@ -192,7 +192,7 @@ if page == "Admin Portal":
             else:
                 udf = pd.read_excel(user_file, engine="openpyxl")
             st.session_state['users_df'] = udf
-            st.session_state['user_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+           e'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success("User credentials updated successfully!")
             st.dataframe(udf)
         except Exception as e:
@@ -203,4 +203,5 @@ if page == "Admin Portal":
 
     # Logout option
     if st.button("Logout"):
-        st.session_state['admin_logged_in'] = Falseout successfully!")
+        st.session_state['admin_logged_in'] = False
+        st.success("Admin logged out successfully!")
