@@ -147,7 +147,7 @@ if page == "Dynatrade – Customer Portal":
         ---
         **Send your requirement in:**
 
-        - **Business WhatsApp:** [Click Here](https://wa.me/+97165132219?text=Inquiry)
+        - **Business WhatsApp:** https://wa.me/+97165132219?text=Inquiry
         - **Email to Sales Man:** 52etrk51@dynatradegroup.com
         - **Contact Sales Man:** Mr. Binay +971 50 4815087
         ---
@@ -178,7 +178,9 @@ if page == "Admin Portal":
             if price_file.name.endswith(".csv"):
                 df = pd.read_csv(price_file, encoding="latin1")
             elif price_file.name.endswith(".xlsx"):
-                    df = pd.read_excel(price_file, engine="xlrd")
+                df = pd.read_excel(price_file, engine="openpyxl")
+            else:
+                df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
             st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
