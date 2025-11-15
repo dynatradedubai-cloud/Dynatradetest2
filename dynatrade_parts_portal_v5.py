@@ -1,17 +1,10 @@
 import streamlit as st
 import pandas as pd
-import datetime
 import base64
 import requests
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
-
-# Add custom CSS for background image and logo
-st.markdown(""" """, unsafe_allow_html=True)
-
-# Display Dynatrade logo
-st.markdown(' ', unsafe_allow_html=True)
 
 # ---------------- MULTIPAGE NAVIGATION ----------------
 page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
@@ -76,7 +69,7 @@ if page == "Dynatrade – Customer Portal":
             st.write("### Special Campaign")
             file_name, file_bytes = st.session_state['campaign_file']
             b64 = base64.b64encode(file_bytes).decode()
-            href = f'[Download Campaign File](data:application/octet-stream;base64,{b64})'
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
             st.markdown(href, unsafe_allow_html=True)
 
         # Price list search
@@ -86,29 +79,34 @@ if page == "Dynatrade – Customer Portal":
             check_search = st.button("Check")  # ✅ Added Check button
 
             df = st.session_state['price_df']
-            if search_term and check_search:  # ✅ Trigger search only when Check is clicked
-                results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
-                if len(results) > 0:
-                    st.write("### Matching Parts")
-                    header_cols = st.columns(len(results.columns) + 2)
-                    for i, col_name in enumerate(results.columns):
-                        header_cols[i].write(col_name)
-                    header_cols[-2].write("Required Qty.")
-                    header_cols[-1].write("Add to Cart")
 
-                    for idx, row in results.iterrows():
-                        cols = st.columns(len(row) + 2)
-                        for i, val in enumerate(row):
-                            cols[i].write(val)
-                        qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
-                        if cols[-1].button("Add", key=f"add_{idx}"):
-                            item = row.to_dict()
-                            if 'Unit Price' in item:
-                                item['Unit Price'] = round(float(item['Unit Price']), 2)
-                            item['Required Qty'] = qty
-                            st.session_state['cart'].append(item)
-                else:
-                    st.warning("No matching parts found.")
+            # ✅ Persist search results in session state
+            if check_search and search_term:
+                st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+
+            # ✅ Display results if available
+            if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
+                results = st.session_state['search_results']
+                st.write("### Matching Parts")
+                header_cols = st.columns(len(results.columns) + 2)
+                for i, col_name in enumerate(results.columns):
+                    header_cols[i].write(col_name)
+                header_cols[-2].write("Required Qty.")
+                header_cols[-1].write("Add to Cart")
+
+                for idx, row in results.iterrows():
+                    cols = st.columns(len(row) + 2)
+                    for i, val in enumerate(row):
+                        cols[i].write(val)
+                    qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
+                    if cols[-1].button("Add", key=f"add_{idx}"):
+                        item = row.to_dict()
+                        if 'Unit Price' in item:
+                            item['Unit Price'] = round(float(item['Unit Price']), 2)
+                        item['Required Qty'] = qty
+                        st.session_state['cart'].append(item)
+            elif check_search:
+                st.warning("No matching parts found.")
 
         # Cart display
         st.write("### Your Cart")
@@ -126,7 +124,7 @@ if page == "Dynatrade – Customer Portal":
 
             if st.button("Clear Cart"):
                 st.session_state['cart'] = []
-                search_term = ""  # ✅ Reset search term
+                st.session_state.pop('search_results', None)  # ✅ Clear matching parts
                 st.success("Cart and search results cleared successfully!")
         else:
             st.write("Cart is empty.")
