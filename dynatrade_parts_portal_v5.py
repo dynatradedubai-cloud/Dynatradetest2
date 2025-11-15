@@ -118,6 +118,11 @@ if page == "Dynatrade – Customer Portal":
                         qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
                         if cols[-1].button("Add", key=f"add_{idx}"):
                             item = row.to_dict()
+
+                            # ✅ Round Unit Price to 2 decimals
+                            if 'Unit Price' in item:
+                                item['Unit Price'] = round(float(item['Unit Price']), 2)
+
                             item['Required Qty'] = qty
                             st.session_state['cart'].append(item)
                 else:
@@ -127,7 +132,12 @@ if page == "Dynatrade – Customer Portal":
             st.write("### Your Cart")
             if st.session_state['cart']:
                 cart_df = pd.DataFrame(st.session_state['cart'])
-                st.table(cart_df.style.hide(axis="index"))
+
+                # ✅ Format Unit Price to two decimals for display
+                if 'Unit Price' in cart_df.columns:
+                    cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
+
+                st.table(cart_df.style.hide_index())
 
                 # Static links for WhatsApp and Email
                 st.markdown("""
