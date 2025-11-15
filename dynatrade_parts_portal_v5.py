@@ -150,8 +150,8 @@ if page == "Admin Portal":
 
     # Upload Price List
     st.write("### Upload Price List")
-    price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"])
-    if price_file:
+    price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"], key="price_upload")
+    if price_file is not None:
         try:
             if price_file.name.endswith(".csv"):
                 df = pd.read_csv(price_file, encoding="latin1")
@@ -161,7 +161,7 @@ if page == "Admin Portal":
                 df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
             st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            st.success("Price List uploaded successfully!")
+            st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
@@ -169,18 +169,18 @@ if page == "Admin Portal":
 
     # Upload Campaign File
     st.write("### Upload Campaign File")
-    campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
-    if campaign_file:
+    campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"], key="campaign_upload")
+    if campaign_file is not None:
         st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
         st.session_state['campaign_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
+        st.success(f"Campaign File uploaded successfully at {st.session_state['campaign_upload_time']}!")
 
     st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
 
     # Upload User Credentials
     st.write("### Upload User Credentials")
-    user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"])
-    if user_file:
+    user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"], key="user_upload")
+    if user_file is not None:
         try:
             if user_file.name.endswith(".csv"):
                 udf = pd.read_csv(user_file)
@@ -188,7 +188,7 @@ if page == "Admin Portal":
                 udf = pd.read_excel(user_file, engine="openpyxl")
             st.session_state['users_df'] = udf
             st.session_state['user_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            st.success("User credentials updated successfully!")
+            st.success(f"User credentials updated successfully at {st.session_state['user_upload_time']}!")
             st.dataframe(udf)
         except Exception as e:
             st.error(f"Error reading user file: {e}")
