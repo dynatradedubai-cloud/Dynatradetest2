@@ -137,7 +137,7 @@ if page == "Dynatrade – Customer Portal":
                 if 'Unit Price' in cart_df.columns:
                     cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
 
-                st.table(cart_df.style.hide_index())
+                st.dataframe(cart_df)  # ✅ Fixed error
 
                 # Static links for WhatsApp and Email
                 st.markdown("""
@@ -213,6 +213,5 @@ if page == "Admin Portal":
                 st.error(f"Error reading user file: {e}")
 
         # Logout option
-        if st.button("Logout"):
-            st.session_state['admin_logged_in'] = False
+       = False
             st.success("Admin logged out successfully!")
