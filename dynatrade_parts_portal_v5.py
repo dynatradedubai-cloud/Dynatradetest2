@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import datetime
 import base64
 import requests
 
@@ -162,16 +163,24 @@ if page == "Admin Portal":
             else:
                 df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
+            st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success("Price List uploaded successfully!")
         except Exception as e:
             st.error(f"Error reading file: {e}")
+
+    if 'price_upload_time' in st.session_state:
+        st.write(f"Last uploaded: {st.session_state['price_upload_time']}")
 
     # Upload Campaign File
     st.write("### Upload Campaign File")
     campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
     if campaign_file:
         st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
+        st.session_state['campaign_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
+
+    if 'campaign_upload_time' in st.session_state:
+        st.write(f"Last uploaded: {st.session_state['campaign_upload_time']}")
 
     # Upload User Credentials
     st.write("### Upload User Credentials")
@@ -183,12 +192,15 @@ if page == "Admin Portal":
             else:
                 udf = pd.read_excel(user_file, engine="openpyxl")
             st.session_state['users_df'] = udf
+            st.session_state['user_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success("User credentials updated successfully!")
             st.dataframe(udf)
         except Exception as e:
             st.error(f"Error reading user file: {e}")
 
+    if 'user_upload_time' in st.session_state:
+        st.write(f"Last uploaded: {st.session_state['user_upload_time']}")
+
     # Logout option
     if st.button("Logout"):
-        st.session_state['admin_logged_in'] = False
-        st.success("Admin logged out successfully!")
+        st.session_state['admin_logged_in'] = Falseout successfully!")
