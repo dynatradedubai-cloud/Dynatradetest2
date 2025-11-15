@@ -158,9 +158,7 @@ if page == "Admin Portal":
             if price_file.name.endswith(".csv"):
                 df = pd.read_csv(price_file, encoding="latin1")
             elif price_file.name.endswith(".xlsx"):
-                df = pd.read_excel(price_file, engine="openpyxl")
-            else:
-                df = pd.read_excel(price_file, engine="xlrd")
+                df = pd.read_excel(price_file, engine             df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
             st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
@@ -183,7 +181,8 @@ if page == "Admin Portal":
     st.write("### Upload User Credentials")
     user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"], key="user_upload")
     if user_file is not None:
-ile.name.endswith(".csv"):
+        try:
+            if user_file.name.endswith(".csv"):
                 udf = pd.read_csv(user_file)
             else:
                 udf = pd.read_excel(user_file, engine="openpyxl")
