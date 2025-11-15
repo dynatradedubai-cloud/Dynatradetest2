@@ -30,7 +30,6 @@ if 'customer_logged_in' not in st.session_state:
 if 'customer_username' not in st.session_state:
     st.session_state['customer_username'] = ""
 
-# Initialize timestamp keys and file info for dynamic refresh
 for key in ['price_upload_time', 'campaign_upload_time', 'user_upload_time']:
     if key not in st.session_state:
         st.session_state[key] = None
@@ -56,13 +55,13 @@ if page == "Dynatrade – Customer Portal":
     </script>
     """, unsafe_allow_html=True)
 
-    # Hidden HTML input for IP
+    # Hidden input for IP
     st.markdown('<input id="client-ip" type="hidden">', unsafe_allow_html=True)
 
     # Visible IP display
     st.markdown('<div id="ip-display" style="font-weight:bold;color:green;margin-bottom:10px;">Detecting IP...</div>', unsafe_allow_html=True)
 
-    # Streamlit text input for IP (optional for debugging)
+    # Streamlit text input for IP (auto-filled by JS)
     client_ip = st.text_input("Your IP (auto-detected)", key="client_ip_display")
 
     if not st.session_state['customer_logged_in']:
@@ -70,23 +69,27 @@ if page == "Dynatrade – Customer Portal":
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-            if not st.session_state['users_df'].empty:
-                user_row = st.session_state['users_df'][
-                    (st.session_state['users_df']['Username'] == username) &
-                    (st.session_state['users_df']['Password'] == password)
-                ]
-                if not user_row.empty:
-                    if client_ip in user_row['IP'].values:
-                        st.session_state['customer_logged_in'] = True
-                        st.session_state['customer_username'] = username
-                        st.success("Login Successful")
-                        st.rerun()
-                    else:
-                        st.error(f"Access denied: IP {client_ip} not allowed")
-                else:
-                    st.error(f"Invalid username or password (IP: {client_ip})")
+            # Strict requirement: IP must be detected
+            if client_ip.strip() == "":
+                st.error("IP detection failed. Please refresh the page.")
             else:
-                st.warning("User credentials file not loaded.")
+                if not st.session_state['users_df'].empty:
+                    user_row = st.session_state['users_df'][
+                        (st.session_state['users_df']['Username'] == username) &
+                        (st.session_state['users_df']['Password'] == password)
+                    ]
+                    if not user_row.empty:
+                        if client_ip in user_row['IP'].values:
+                            st.session_state['customer_logged_in'] = True
+                            st.session_state['customer_username'] = username
+                            st.success("Login Successful")
+                            st.rerun()
+                        else:
+                            st.error(f"Access denied: IP {client_ip} not allowed")
+                    else:
+                        st.error(f"Invalid username or password (IP: {client_ip})")
+                else:
+                    st.error("User credentials file not loaded.")
     else:
         st.success(f"Welcome, {st.session_state['customer_username']}!")
 
@@ -185,9 +188,7 @@ if page == "Admin Portal":
     else:
         st.success("Admin Logged In")
 
-    # ✅ Upload sections only if logged in
     if st.session_state['admin_logged_in']:
-        # Upload Price List
         st.write("### Upload Price List")
         price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"], key="price_upload")
         if price_file is not None:
@@ -208,7 +209,6 @@ if page == "Admin Portal":
                     st.error(f"Error reading file: {e}")
             st.write(f"**Last Price List Upload:** {st.session_state['price_upload_time'] or 'No file uploaded yet'}")
 
-        # Upload Campaign File
         st.write("### Upload Campaign File")
         campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"], key="campaign_upload")
         if campaign_file is not None:
@@ -220,7 +220,6 @@ if page == "Admin Portal":
                 st.success(f"Campaign File uploaded successfully at {st.session_state['campaign_upload_time']}!")
             st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
 
-        # Upload User Credentials
         st.write("### Upload User Credentials")
         user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"], key="user_upload")
         if user_file is not None:
@@ -240,7 +239,6 @@ if page == "Admin Portal":
                     st.error(f"Error reading user file: {e}")
             st.write(f"**Last User Credentials Upload:** {st.session_state['user_upload_time'] or 'No file uploaded yet'}")
 
-        # Logout option
         if st.button("Logout"):
             st.session_state['admin_logged_in'] = False
             st.success("Admin logged out successfully!")
