@@ -38,12 +38,25 @@ for key in ['last_price_file', 'last_campaign_file', 'last_user_file']:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# Function to get real client IP using whatismyipaddress.com
+
+# -----------------------------------------------------
+# NEW: REAL WORKING CLIENT IP DETECTION
+# -----------------------------------------------------
 def get_client_ip():
+    """
+    Detect client IP from Streamlit request headers.
+    Only works when deployed on a server.
+    """
     try:
-        return requests.get('https://ipv4bot.whatismyipaddress.com').text.strip()
+        ctx = st.context
+        if ctx and ctx.headers:
+            ip = ctx.headers.get("X-Forwarded-For", "")
+            if ip:
+                return ip.split(",")[0].strip()
     except:
-        return ""
+        pass
+    return ""  # fallback
+
 
 # ---------------- CUSTOMER PORTAL ----------------
 if page == "Dynatrade – Customer Portal":
