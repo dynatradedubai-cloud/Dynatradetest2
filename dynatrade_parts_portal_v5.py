@@ -4,6 +4,7 @@ from datetime import datetime
 import base64
 from io import BytesIO
 import pytz
+import requests
 
 # Initialize Dubai timezone
 dubai_tz = pytz.timezone("Asia/Dubai")
@@ -37,32 +38,20 @@ for key in ['last_price_file', 'last_campaign_file', 'last_user_file']:
     if key not in st.session_state:
         st.session_state[key] = None
 
+# Function to get real client IP using whatismyipaddress.com
+def get_client_ip():
+    try:
+        return requests.get('https://ipv4bot.whatismyipaddress.com').text.strip()
+    except:
+        return ""
+
 # ---------------- CUSTOMER PORTAL ----------------
 if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
-    # Inject JavaScript to fetch client IP and display it
-    st.markdown("""
-    <script>
-    fetch('https://api.ipify.org?format=json')
-      .then(response => response.json())
-      .then(data => {
-        const ipInput = window.parent.document.getElementById('client-ip');
-        if (ipInput) ipInput.value = data.ip;
-        const displayDiv = window.parent.document.getElementById('ip-display');
-        if (displayDiv) displayDiv.innerText = 'Detected IP: ' + data.ip;
-      });
-    </script>
-    """, unsafe_allow_html=True)
-
-    # Hidden input for IP
-    st.markdown('<input id="client-ip" type="hidden">', unsafe_allow_html=True)
-
-    # Visible IP display
-    st.markdown('<div id="ip-display" style="font-weight:bold;color:green;margin-bottom:10px;">Detecting IP...</div>', unsafe_allow_html=True)
-
-    # Streamlit text input for IP (auto-filled by JS)
-    client_ip = st.text_input("Your IP (auto-detected)", key="client_ip_display")
+    # Detect IP
+    client_ip = get_client_ip()
+    st.markdown(f"<div style='font-weight:bold;color:green;margin-bottom:10px;'>Detected IP: {client_ip}</div>", unsafe_allow_html=True)
 
     if not st.session_state['customer_logged_in']:
         username = st.text_input("Customer Username")
@@ -70,7 +59,7 @@ if page == "Dynatrade – Customer Portal":
 
         if st.button("Login"):
             # Strict requirement: IP must be detected
-            if client_ip.strip() == "":
+            if client_ip == "":
                 st.error("IP detection failed. Please refresh the page.")
             else:
                 if not st.session_state['users_df'].empty:
