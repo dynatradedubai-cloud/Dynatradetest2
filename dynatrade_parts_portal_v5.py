@@ -118,10 +118,9 @@ if page == "Dynatrade – Customer Portal":
                         qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
                         if cols[-1].button("Add", key=f"add_{idx}"):
                             item = row.to_dict()
-                            # Round Unit Price to 2 decimals (adjust column name if needed)
-                            if 'Unit Price' in item:
-                            item['Unit Price'] = round(float(item['Unit Price']), 2)
-
+                        # Round Unit Price to 2 decimals
+        if 'Unit Price' in item:
+        item['Unit Price'] = round(float(item['Unit Price']), 2)
                             item['Required Qty'] = qty
                             st.session_state['cart'].append(item)
                 else:
