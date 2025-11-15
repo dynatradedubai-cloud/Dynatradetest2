@@ -58,7 +58,7 @@ if page == "Dynatrade – Customer Portal":
                         st.session_state['customer_logged_in'] = True
                         st.session_state['customer_username'] = username
                         st.success("Login Successful")
-                        st.experimental_rerun()  # ✅ Immediate refresh
+                        st.rerun()  # ✅ Immediate refresh
                     else:
                         st.error(f"Access denied: IP {client_ip} not allowed")
                 else:
@@ -131,7 +131,7 @@ if page == "Dynatrade – Customer Portal":
             st.session_state.pop('search_results', None)
             st.session_state['cart'] = []
             st.success("Logged out successfully!")
-            st.experimental_rerun()  # ✅ Refresh after logout
+            st.rerun()  # ✅ Refresh after logout
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -144,7 +144,7 @@ if page == "Admin Portal":
             if admin_user == "admin" and admin_pass == "admin123":
                 st.session_state['admin_logged_in'] = True
                 st.success("Admin Login Successful")
-                st.experimental_rerun()  # ✅ Immediate refresh
+                st.rerun()  # ✅ Immediate refresh
             else:
                 st.error("Invalid Admin Credentials")
     else:
@@ -183,8 +183,7 @@ if page == "Admin Portal":
     st.write("### Upload User Credentials")
     user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"], key="user_upload")
     if user_file is not None:
-        try:
-            if user_file.name.endswith(".csv"):
+ile.name.endswith(".csv"):
                 udf = pd.read_csv(user_file)
             else:
                 udf = pd.read_excel(user_file, engine="openpyxl")
@@ -201,4 +200,4 @@ if page == "Admin Portal":
     if st.button("Logout"):
         st.session_state['admin_logged_in'] = False
         st.success("Admin logged out successfully!")
-        st.experimental_rerun()  # ✅ Refresh after logout
+        st.rerun()  # ✅ Refresh after logout
