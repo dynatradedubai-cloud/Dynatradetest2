@@ -42,13 +42,13 @@ for key in ['last_price_file', 'last_campaign_file', 'last_user_file']:
 if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
-    # Inject JavaScript to fetch client IP and populate text input
+    # Inject JavaScript to fetch client IP and populate hidden input
     st.markdown("""
     <script>
     fetch('https://api.ipify.org?format=json')
       .then(response => response.json())
       .then(data => {
-        const ipInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+        const ipInput = window.parent.document.getElementById('client-ip');
         if (ipInput) ipInput.value = data.ip;
       });
     </script>
@@ -57,7 +57,24 @@ if page == "Dynatrade – Customer Portal":
     if not st.session_state['customer_logged_in']:
         username = st.text_input("Customer Username")
         password = st.text_input("Password", type="password")
-        client_ip = st.text_input("Your IP will appear here")
+
+        # Hidden HTML input for IP
+        st.markdown('<input id="client-ip" type="hidden">', unsafe_allow_html=True)
+        client_ip = st.text_input("Your IP will appear here", key="client_ip_display")
+
+        # Sync hidden input value to Streamlit text input using JS
+        st.markdown("""
+        <script>
+        const observer = new MutationObserver(() => {
+          const ipInput = document.getElementById('client-ip');
+          const displayInput = window.parent.document.querySelector('input[data-testid="stTextInput"][aria-label="Your IP will appear here"]');
+          if (ipInput && displayInput) {
+            displayInput.value = ipInput.value;
+          }
+        });
+        observer.observe(document.getElementById('client-ip'), { attributes: true, attributeFilter: ['value'] });
+        </script>
+        """, unsafe_allow_html=True)
 
         if st.button("Login"):
             if not st.session_state['users_df'].empty:
