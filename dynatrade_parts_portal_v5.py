@@ -206,7 +206,9 @@ if page == "Admin Portal":
                     udf = pd.read_excel(user_file, engine="openpyxl")
                 st.session_state['users_df'] = udf
                 st.success("User credentials updated successfully!")
-                st.dataframe(udror(f"Error reading user file: {e}")
+                st.dataframe(udf)
+            except Exception as e:
+                st.error(f"Error reading user file: {e}")
 
         # Logout option
         if st.button("Logout"):
