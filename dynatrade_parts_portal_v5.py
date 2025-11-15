@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import base64
 import requests
+from io import BytesIO
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
@@ -118,16 +119,13 @@ if page == "Dynatrade – Customer Portal":
                 cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
             st.dataframe(cart_df)
 
-            # ✅ Add contact information below the cart
-            st.markdown("""
-            ---
-            **Send your requirement in:**
+            # ✅ Add Download Cart as Excel button
+            output = BytesIO()
+            cart_df.to_excel(output, index=False)
+            excel_data = output.getvalue()
+            b64 = base64.b64encode(excel_data).decode()
+            st.markdown(f'<a href="data:application/octet-stream;base64,{b64}" download="cart.xlsx">Download Cart as Excel</a>', unsafe_allow_html=True)
 
-            - **Business WhatsApp:** [Click Here](https://wa.me/+97165132219?text=Inquiry)
-            - **Email to Sales Man:** 52etrk51@dynatradegroup.com
-            - **Contact Sales Man:** Mr. Binay +971 50 4815087
-            ---
-            """)
         else:
             st.write("Cart is empty.")
 
@@ -143,6 +141,17 @@ if page == "Dynatrade – Customer Portal":
             st.session_state['cart'] = []
             st.success("Logged out successfully!")
             st.rerun()
+
+        # ✅ Always show contact info at the end of the page
+        st.markdown("""
+        ---
+        **Send your requirement in:**
+
+        - **Business WhatsApp:** [Click Here](https://wa.me/+97165132219?text=Inquiry)
+        - **Email to Sales Man:** 52etrk51@dynatradegroup.com
+        - **Contact Sales Man:** Mr. Binay +971 50 4815087
+        ---
+        """)
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -169,9 +178,7 @@ if page == "Admin Portal":
             if price_file.name.endswith(".csv"):
                 df = pd.read_csv(price_file, encoding="latin1")
             elif price_file.name.endswith(".xlsx"):
-                df = pd.read_excel(price_file, engine="openpyxl")
-            else:
-                df = pd.read_excel(price_file, engine="xlrd")
+                    df = pd.read_excel(price_file, engine="xlrd")
             st.session_state['price_df'] = df
             st.session_state['price_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
