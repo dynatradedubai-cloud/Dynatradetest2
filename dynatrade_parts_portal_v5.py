@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import base64
-import requests
 from io import BytesIO
 import pytz
 
@@ -12,8 +11,31 @@ dubai_tz = pytz.timezone("Asia/Dubai")
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
 
-# ---------------- MULTIPAGE NAVIGATION ----------------
-page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
+# -----------------------------------------------------
+# CACHED STORAGE FOR USER CREDENTIALS (PERSISTENT)
+# -----------------------------------------------------
+@st.cache_data
+def save_users(df):
+    return df
+
+@st.cache_data
+def load_users():
+    return save_users()
+
+# -----------------------------------------------------
+# REAL WORKING CLIENT IP DETECTION
+# -----------------------------------------------------
+def get_client_ip():
+    try:
+        ctx = st.context
+        if ctx and ctx.headers:
+            ip = ctx.headers.get("X-Forwarded-For", "")
+            if ip:
+                return ip.split(",")[0].strip()
+    except:
+        pass
+    return ""  # fallback
+
 
 # ---------------- SESSION STATE ----------------
 if 'cart' not in st.session_state:
@@ -23,7 +45,8 @@ if 'price_df' not in st.session_state:
 if 'campaign_file' not in st.session_state:
     st.session_state['campaign_file'] = None
 if 'users_df' not in st.session_state:
-    st.session_state['users_df'] = pd.DataFrame(columns=['Username', 'Password', 'IP'])
+    st.session_state['users_df'] = pd.DataFrame()
+
 if 'admin_logged_in' not in st.session_state:
     st.session_state['admin_logged_in'] = False
 if 'customer_logged_in' not in st.session_state:
@@ -39,26 +62,12 @@ for key in ['last_price_file', 'last_campaign_file', 'last_user_file']:
         st.session_state[key] = None
 
 
-# -----------------------------------------------------
-# NEW: REAL WORKING CLIENT IP DETECTION
-# -----------------------------------------------------
-def get_client_ip():
-    """
-    Detect client IP from Streamlit request headers.
-    Only works when deployed on a server.
-    """
-    try:
-        ctx = st.context
-        if ctx and ctx.headers:
-            ip = ctx.headers.get("X-Forwarded-For", "")
-            if ip:
-                return ip.split(",")[0].strip()
-    except:
-        pass
-    return ""  # fallback
+# ---------------- MULTIPAGE NAVIGATION ----------------
+page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
 
-
-# ---------------- CUSTOMER PORTAL ----------------
+# =====================================================
+# =============== CUSTOMER PORTAL =====================
+# =====================================================
 if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
@@ -66,37 +75,45 @@ if page == "Dynatrade – Customer Portal":
     client_ip = get_client_ip()
     st.markdown(f"<div style='font-weight:bold;color:green;margin-bottom:10px;'>Detected IP: {client_ip}</div>", unsafe_allow_html=True)
 
+    # Load users from cache if session list is empty
+    if st.session_state['users_df'].empty:
+        try:
+            st.session_state['users_df'] = load_users()
+        except:
+            pass
+
+    # ---------------- LOGIN ----------------
     if not st.session_state['customer_logged_in']:
         username = st.text_input("Customer Username")
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-            if client_ip == "":
-                st.error("IP detection failed. Please refresh the page.")
+            if st.session_state['users_df'].empty:
+                st.error("User credentials file not uploaded.")
             else:
-                if not st.session_state['users_df'].empty:
-                    user_row = st.session_state['users_df'][
-                        (st.session_state['users_df']['Username'] == username) &
-                        (st.session_state['users_df']['Password'] == password)
-                    ]
-                    if not user_row.empty:
-                        if client_ip in user_row['IP'].values:
-                            st.session_state['customer_logged_in'] = True
-                            st.session_state['customer_username'] = username
-                            st.success("Login Successful")
-                            st.rerun()
-                        else:
-                            st.error(f"Access denied: IP {client_ip} not allowed")
+                user_row = st.session_state['users_df'][
+                    (st.session_state['users_df']['Username'] == username) &
+                    (st.session_state['users_df']['Password'] == password)
+                ]
+                if not user_row.empty:
+                    allowed_ip = str(user_row['IP'].values[0]).strip()
+
+                    if client_ip == allowed_ip:
+                        st.session_state['customer_logged_in'] = True
+                        st.session_state['customer_username'] = username
+                        st.success("Login Successful!")
+                        st.rerun()
                     else:
-                        st.error(f"Invalid username or password (IP: {client_ip})")
+                        st.error(f"Access denied: IP {client_ip} is not allowed.")
                 else:
-                    st.error("User credentials file not loaded.")
+                    st.error("Invalid username or password.")
     else:
         st.success(f"Welcome, {st.session_state['customer_username']}!")
 
-    # Restrict all functionality until login succeeds
+    # ---------------- CONTENT RESTRICTED UNTIL LOGIN ----------------
     if st.session_state['customer_logged_in']:
-        # Campaign file download
+
+        # Campaign File Download
         if st.session_state['campaign_file']:
             st.write("### Special Campaign")
             file_name, file_bytes = st.session_state['campaign_file']
@@ -104,26 +121,32 @@ if page == "Dynatrade – Customer Portal":
             href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
             st.markdown(href, unsafe_allow_html=True)
 
-        # Search and cart
+        # Parts Search
         if st.session_state['price_df'] is not None:
             st.write("### Search for Parts")
             search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-            check_search = st.button("Check")
-            df = st.session_state['price_df']
-            if check_search and search_term:
-                st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+            if st.button("Check") and search_term:
+                df = st.session_state['price_df']
+                st.session_state['search_results'] = df[df.apply(
+                    lambda row: search_term.lower() in str(row.values).lower(),
+                    axis=1
+                )]
+
             if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
                 results = st.session_state['search_results']
                 st.write("### Matching Parts")
+
                 header_cols = st.columns(len(results.columns) + 2)
                 for i, col_name in enumerate(results.columns):
                     header_cols[i].write(col_name)
                 header_cols[-2].write("Required Qty.")
                 header_cols[-1].write("Add to Cart")
+
                 for idx, row in results.iterrows():
                     cols = st.columns(len(row) + 2)
                     for i, val in enumerate(row):
                         cols[i].write(val)
+
                     qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
                     if cols[-1].button("Add", key=f"add_{idx}"):
                         item = row.to_dict()
@@ -131,14 +154,14 @@ if page == "Dynatrade – Customer Portal":
                             item['Unit Price'] = round(float(item['Unit Price']), 2)
                         item['Required Qty'] = qty
                         st.session_state['cart'].append(item)
-            elif check_search:
-                st.warning("No matching parts found.")
+            else:
+                if st.button("Check") and search_term:
+                    st.warning("No matching parts found.")
 
+        # Cart Display
         st.write("### Your Cart")
         if st.session_state['cart']:
             cart_df = pd.DataFrame(st.session_state['cart'])
-            if 'Unit Price' in cart_df.columns:
-                cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
             st.dataframe(cart_df)
 
             output = BytesIO()
@@ -152,34 +175,38 @@ if page == "Dynatrade – Customer Portal":
         if st.button("Clear Cart"):
             st.session_state['cart'] = []
             st.session_state.pop('search_results', None)
-            st.success("Cart and search results cleared successfully!")
+            st.success("Cart cleared!")
 
         if st.button("Logout"):
             st.session_state['customer_logged_in'] = False
             st.session_state['customer_username'] = ""
             st.session_state.pop('search_results', None)
             st.session_state['cart'] = []
-            st.success("Logged out successfully!")
             st.rerun()
+
     else:
-        st.warning("Please log in to access campaign, parts search, and cart.")
+        st.warning("Please log in to access the portal.")
 
     st.markdown("""
     ---
     **Send your requirement in:**
-    - **Business WhatsApp:** https://wa.me/+97165132219?text=Inquiry
-    - **Email to Sales Man:** 52etrk51@dynatradegroup.com
-    - **Contact Sales Man:** Mr. Binay +971 50 4815087
+    - **Business WhatsApp:** https://wa.me/+97165132219?text=Inquiry  
+    - **Email:** 52etrk51@dynatradegroup.com  
+    - **Sales:** Mr. Binay +971 50 4815087  
     ---
     """)
 
-# ---------------- ADMIN PORTAL ----------------
+
+# =====================================================
+# ==================== ADMIN PORTAL ===================
+# =====================================================
 if page == "Admin Portal":
     st.title("Admin Portal")
 
     if not st.session_state['admin_logged_in']:
         admin_user = st.text_input("Admin Username")
         admin_pass = st.text_input("Password", type="password")
+
         if st.button("Admin Login"):
             if admin_user == "admin" and admin_pass == "admin123":
                 st.session_state['admin_logged_in'] = True
@@ -187,61 +214,53 @@ if page == "Admin Portal":
                 st.rerun()
             else:
                 st.error("Invalid Admin Credentials")
+
     else:
         st.success("Admin Logged In")
 
-    if st.session_state['admin_logged_in']:
+        # Upload Price List
         st.write("### Upload Price List")
         price_file = st.file_uploader("Upload Price List", type=["xlsx", "xls", "csv"], key="price_upload")
         if price_file is not None:
-            file_info = (price_file.name, price_file.size)
-            if st.session_state['last_price_file'] != file_info:
-                try:
-                    if price_file.name.endswith(".csv"):
-                        df = pd.read_csv(price_file, encoding="latin1")
-                    elif price_file.name.endswith(".xlsx"):
-                        df = pd.read_excel(price_file, engine="openpyxl")
-                    else:
-                        df = pd.read_excel(price_file, engine="xlrd")
-                    st.session_state['price_df'] = df
-                    st.session_state['price_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
-                    st.session_state['last_price_file'] = file_info
-                    st.success(f"Price List uploaded successfully at {st.session_state['price_upload_time']}!")
-                except Exception as e:
-                    st.error(f"Error reading file: {e}")
-            st.write(f"**Last Price List Upload:** {st.session_state['price_upload_time'] or 'No file uploaded yet'}")
+            try:
+                if price_file.name.endswith(".csv"):
+                    df = pd.read_csv(price_file)
+                else:
+                    df = pd.read_excel(price_file, engine="openpyxl")
 
+                st.session_state['price_df'] = df
+                st.session_state['price_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+                st.success("Price List Uploaded Successfully!")
+            except Exception as e:
+                st.error(f"Error reading file: {e}")
+
+        # Upload Campaign File
         st.write("### Upload Campaign File")
-        campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"], key="campaign_upload")
-        if campaign_file is not None:
-            file_info = (campaign_file.name, campaign_file.size)
-            if st.session_state['last_campaign_file'] != file_info:
-                st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
-                st.session_state['campaign_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
-                st.session_state['last_campaign_file'] = file_info
-                st.success(f"Campaign File uploaded successfully at {st.session_state['campaign_upload_time']}!")
-            st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
+        campaign_file = st.file_uploader("Upload Campaign File", type=["xlsx","xls","csv","pdf","png","jpeg","jpg","doc","docx"])
+        if campaign_file:
+            st.session_state['campaign_file'] = (campaign_file.name, campaign_file.read())
+            st.session_state['campaign_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+            st.success("Campaign File Uploaded Successfully!")
 
+        # Upload User Credentials
         st.write("### Upload User Credentials")
-        user_file = st.file_uploader("Upload User Credentials Excel", type=["xlsx","xls","csv"], key="user_upload")
-        if user_file is not None:
-            file_info = (user_file.name, user_file.size)
-            if st.session_state['last_user_file'] != file_info:
-                try:
-                    if user_file.name.endswith(".csv"):
-                        udf = pd.read_csv(user_file)
-                    else:
-                        udf = pd.read_excel(user_file, engine="openpyxl")
-                    st.session_state['users_df'] = udf
-                    st.session_state['user_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
-                    st.session_state['last_user_file'] = file_info
-                    st.success(f"User credentials updated successfully at {st.session_state['user_upload_time']}!")
-                    st.dataframe(udf)
-                except Exception as e:
-                    st.error(f"Error reading user file: {e}")
-            st.write(f"**Last User Credentials Upload:** {st.session_state['user_upload_time'] or 'No file uploaded yet'}")
+        user_file = st.file_uploader("Upload User Credentials", type=["xlsx","xls","csv"])
+        if user_file:
+            try:
+                if user_file.name.endswith(".csv"):
+                    udf = pd.read_csv(user_file)
+                else:
+                    udf = pd.read_excel(user_file, engine="openpyxl")
+
+                save_users.clear()          # clear old cached version
+                save_users(udf)             # save new user list
+                st.session_state['users_df'] = udf
+
+                st.session_state['user_upload_time'] = datetime.now(dubai_tz).strftime("%d-%m-%Y %H:%M:%S")
+                st.success("User Credentials Uploaded Successfully!")
+            except Exception as e:
+                st.error(f"Error reading user file: {e}")
 
         if st.button("Logout"):
             st.session_state['admin_logged_in'] = False
-            st.success("Admin logged out successfully!")
             st.rerun()
