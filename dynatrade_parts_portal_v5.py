@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import base64
+import requests
 from io import BytesIO
 import pytz
-import requests
 
 # Initialize Dubai timezone
 dubai_tz = pytz.timezone("Asia/Dubai")
@@ -58,7 +58,6 @@ if page == "Dynatrade – Customer Portal":
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-            # Strict requirement: IP must be detected
             if client_ip == "":
                 st.error("IP detection failed. Please refresh the page.")
             else:
@@ -82,75 +81,76 @@ if page == "Dynatrade – Customer Portal":
     else:
         st.success(f"Welcome, {st.session_state['customer_username']}!")
 
-    # Campaign file download
-    if st.session_state['campaign_file']:
-        st.write("### Special Campaign")
-        file_name, file_bytes = st.session_state['campaign_file']
-        b64 = base64.b64encode(file_bytes).decode()
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
-        st.markdown(href, unsafe_allow_html=True)
+    # Restrict all functionality until login succeeds
+    if st.session_state['customer_logged_in']:
+        # Campaign file download
+        if st.session_state['campaign_file']:
+            st.write("### Special Campaign")
+            file_name, file_bytes = st.session_state['campaign_file']
+            b64 = base64.b64encode(file_bytes).decode()
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
+            st.markdown(href, unsafe_allow_html=True)
 
-    # Show search and cart only if logged in
-    if st.session_state['price_df'] is not None:
-        st.write("### Search for Parts")
-        search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-        check_search = st.button("Check")
-        df = st.session_state['price_df']
-        if check_search and search_term:
-            st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
-        if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
-            results = st.session_state['search_results']
-            st.write("### Matching Parts")
-            header_cols = st.columns(len(results.columns) + 2)
-            for i, col_name in enumerate(results.columns):
-                header_cols[i].write(col_name)
-            header_cols[-2].write("Required Qty.")
-            header_cols[-1].write("Add to Cart")
-            for idx, row in results.iterrows():
-                cols = st.columns(len(row) + 2)
-                for i, val in enumerate(row):
-                    cols[i].write(val)
-                qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
-                if cols[-1].button("Add", key=f"add_{idx}"):
-                    item = row.to_dict()
-                    if 'Unit Price' in item:
-                        item['Unit Price'] = round(float(item['Unit Price']), 2)
-                    item['Required Qty'] = qty
-                    st.session_state['cart'].append(item)
-        elif check_search:
-            st.warning("No matching parts found.")
+        # Search and cart
+        if st.session_state['price_df'] is not None:
+            st.write("### Search for Parts")
+            search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
+            check_search = st.button("Check")
+            df = st.session_state['price_df']
+            if check_search and search_term:
+                st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+            if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
+                results = st.session_state['search_results']
+                st.write("### Matching Parts")
+                header_cols = st.columns(len(results.columns) + 2)
+                for i, col_name in enumerate(results.columns):
+                    header_cols[i].write(col_name)
+                header_cols[-2].write("Required Qty.")
+                header_cols[-1].write("Add to Cart")
+                for idx, row in results.iterrows():
+                    cols = st.columns(len(row) + 2)
+                    for i, val in enumerate(row):
+                        cols[i].write(val)
+                    qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
+                    if cols[-1].button("Add", key=f"add_{idx}"):
+                        item = row.to_dict()
+                        if 'Unit Price' in item:
+                            item['Unit Price'] = round(float(item['Unit Price']), 2)
+                        item['Required Qty'] = qty
+                        st.session_state['cart'].append(item)
+            elif check_search:
+                st.warning("No matching parts found.")
 
-    # Cart display
-    st.write("### Your Cart")
-    if st.session_state['cart']:
-        cart_df = pd.DataFrame(st.session_state['cart'])
-        if 'Unit Price' in cart_df.columns:
-            cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
-        st.dataframe(cart_df)
+        st.write("### Your Cart")
+        if st.session_state['cart']:
+            cart_df = pd.DataFrame(st.session_state['cart'])
+            if 'Unit Price' in cart_df.columns:
+                cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
+            st.dataframe(cart_df)
 
-        # Download Cart as Excel
-        output = BytesIO()
-        cart_df.to_excel(output, index=False)
-        excel_data = output.getvalue()
-        b64 = base64.b64encode(excel_data).decode()
-        st.markdown(f'<a href="data:application/octet-stream;base64,{b64}" download="cart.xlsx">Download Cart as Excel</a>', unsafe_allow_html=True)
+            output = BytesIO()
+            cart_df.to_excel(output, index=False)
+            excel_data = output.getvalue()
+            b64 = base64.b64encode(excel_data).decode()
+            st.markdown(f'<a href="data:application/octet-stream;base64,{b64}" download="cart.xlsx">Download Cart as Excel</a>', unsafe_allow_html=True)
+        else:
+            st.write("Cart is empty.")
+
+        if st.button("Clear Cart"):
+            st.session_state['cart'] = []
+            st.session_state.pop('search_results', None)
+            st.success("Cart and search results cleared successfully!")
+
+        if st.button("Logout"):
+            st.session_state['customer_logged_in'] = False
+            st.session_state['customer_username'] = ""
+            st.session_state.pop('search_results', None)
+            st.session_state['cart'] = []
+            st.success("Logged out successfully!")
+            st.rerun()
     else:
-        st.write("Cart is empty.")
+        st.warning("Please log in to access campaign, parts search, and cart.")
 
-    if st.button("Clear Cart"):
-        st.session_state['cart'] = []
-        st.session_state.pop('search_results', None)
-        st.success("Cart and search results cleared successfully!")
-
-    if st.button("Logout"):
-        st.session_state['customer_logged_in'] = False
-        st.session_state['customer_username'] = ""
-        st.session_state.pop('search_results', None)
-        st.session_state['cart'] = []
-        st.success("Logged out successfully!")
-        st.rerun()
-
-    # Contact info
     st.markdown("""
     ---
     **Send your requirement in:**
