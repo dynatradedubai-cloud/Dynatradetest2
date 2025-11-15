@@ -58,7 +58,7 @@ if page == "Dynatrade – Customer Portal":
                         st.session_state['customer_logged_in'] = True
                         st.session_state['customer_username'] = username
                         st.success("Login Successful")
-                        st.rerun()  # Immediate refresh
+                        st.rerun()
                     else:
                         st.error(f"Access denied: IP {client_ip} not allowed")
                 else:
@@ -117,6 +117,17 @@ if page == "Dynatrade – Customer Portal":
             if 'Unit Price' in cart_df.columns:
                 cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
             st.dataframe(cart_df)
+
+            # ✅ Add contact information below the cart
+            st.markdown("""
+            ---
+            **Send your requirement in:**
+
+            - **Business WhatsApp:** [Click Here](https://wa.me/+97165132219?text=Inquiry)
+            - **Email to Sales Man:** 52etrk51@dynatradegroup.com
+            - **Contact Sales Man:** Mr. Binay +971 50 4815087
+            ---
+            """)
         else:
             st.write("Cart is empty.")
 
@@ -131,7 +142,7 @@ if page == "Dynatrade – Customer Portal":
             st.session_state.pop('search_results', None)
             st.session_state['cart'] = []
             st.success("Logged out successfully!")
-            st.rerun()  # Refresh after logout
+            st.rerun()
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -144,7 +155,7 @@ if page == "Admin Portal":
             if admin_user == "admin" and admin_pass == "admin123":
                 st.session_state['admin_logged_in'] = True
                 st.success("Admin Login Successful")
-                st.rerun()  # Immediate refresh
+                st.rerun()
             else:
                 st.error("Invalid Admin Credentials")
     else:
@@ -201,4 +212,4 @@ if page == "Admin Portal":
     if st.button("Logout"):
         st.session_state['admin_logged_in'] = False
         st.success("Admin logged out successfully!")
-        st.rerun()  # Refresh after logout
+        st.rerun()
