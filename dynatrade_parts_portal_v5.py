@@ -58,6 +58,7 @@ if page == "Dynatrade – Customer Portal":
                         st.session_state['customer_logged_in'] = True
                         st.session_state['customer_username'] = username
                         st.success("Login Successful")
+                        st.experimental_rerun()  # ✅ Immediate refresh
                     else:
                         st.error(f"Access denied: IP {client_ip} not allowed")
                 else:
@@ -130,6 +131,7 @@ if page == "Dynatrade – Customer Portal":
             st.session_state.pop('search_results', None)
             st.session_state['cart'] = []
             st.success("Logged out successfully!")
+            st.experimental_rerun()  # ✅ Refresh after logout
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -142,6 +144,7 @@ if page == "Admin Portal":
             if admin_user == "admin" and admin_pass == "admin123":
                 st.session_state['admin_logged_in'] = True
                 st.success("Admin Login Successful")
+                st.experimental_rerun()  # ✅ Immediate refresh
             else:
                 st.error("Invalid Admin Credentials")
     else:
@@ -198,3 +201,4 @@ if page == "Admin Portal":
     if st.button("Logout"):
         st.session_state['admin_logged_in'] = False
         st.success("Admin logged out successfully!")
+        st.experimental_rerun()  # ✅ Refresh after logout
