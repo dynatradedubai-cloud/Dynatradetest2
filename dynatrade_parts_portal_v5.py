@@ -4,10 +4,33 @@ import datetime
 import base64
 import requests
 
+# -------------------- PAGE CONFIG --------------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
 
+# Add custom CSS for background image and logo
+st.markdown(
+    """
+    <style>
+    body {
+        background-image: url('https://your-image-url/european-car-truck.jpg');
+        background-size: cover;
+    }
+    .logo {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        width: 150px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Display Dynatrade logo
+st.markdown('<img src="https://your-logo-url/dynatrade-logo.png" class="logo">', unsafe_allow_html=True)
+
 # -------------------- MULTIPAGE NAVIGATION --------------------
-page = st.sidebar.radio("Navigate", ["Customer Portal", "Admin Portal"])
+page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
 
 # -------------------- SESSION STATE --------------------
 if 'cart' not in st.session_state:
@@ -25,7 +48,7 @@ if 'customer_logged_in' not in st.session_state:
 if 'customer_username' not in st.session_state:
     st.session_state['customer_username'] = ""
 
-# Function to get real client IP using external service
+# Function to get real client IP using ipify
 @st.cache_data(show_spinner=False)
 def get_client_ip():
     try:
@@ -34,8 +57,8 @@ def get_client_ip():
         return 'UNKNOWN'
 
 # -------------------- CUSTOMER PORTAL --------------------
-if page == "Customer Portal":
-    st.title("Customer Portal")
+if page == "Dynatrade – Customer Portal":
+    st.title("Dynatrade – Customer Portal")
 
     if not st.session_state['customer_logged_in']:
         with st.form("login_form"):
@@ -79,41 +102,40 @@ if page == "Customer Portal":
             df = st.session_state['price_df']
             if search_term:
                 results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
-                st.write(f"Found {len(results)} matching parts:")
                 if len(results) > 0:
-                    results = results.copy()
-                    results['Add to Cart'] = ''
                     st.write("### Matching Parts")
+                    # Add headers including Required Qty and Add to Cart
+                    header_cols = st.columns(len(results.columns) + 2)
+                    for i, col_name in enumerate(results.columns):
+                        header_cols[i].write(col_name)
+                    header_cols[-2].write("Required Qty.")
+                    header_cols[-1].write("Add to Cart")
+
                     for idx, row in results.iterrows():
-                        cols = st.columns(len(row))
-                        for i, val in enumerate(row[:-1]):
+                        cols = st.columns(len(row) + 2)
+                        for i, val in enumerate(row):
                             cols[i].write(val)
+                        qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
                         if cols[-1].button("Add", key=f"add_{idx}"):
-                            st.session_state['cart'].append(row[:-1].to_dict())
+                            item = row.to_dict()
+                            item['Required Qty'] = qty
+                            st.session_state['cart'].append(item)
                 else:
                     st.warning("No matching parts found.")
-
-                # Notification
-                st.info("Notification sent to salesman: 52etrk51@dynatradegroup.com")
-                st.write(f"Customer: {st.session_state['customer_username']}, Part: {search_term}, Time: {datetime.datetime.now()}")
 
             # Cart display
             st.write("### Your Cart")
             if st.session_state['cart']:
                 cart_df = pd.DataFrame(st.session_state['cart'])
-                st.table(cart_df)
+                st.table(cart_df.style.hide(axis="index"))
 
-                whatsapp_number = "+97165132219"
-                call_number = "+971504815087"
-                email_id = "52etrk51@dynatradegroup.com"
-                whatsapp_message = "Inquiry for parts:\n" + cart_df.to_string(index=False)
-                whatsapp_link = f"https://wa.me/{whatsapp_number}?text={whatsapp_message}"
-                email_body = cart_df.to_string(index=False)
-                mailto_link = f"mailto:{email_id}?subject=Parts Inquiry&body={email_body}"
-
-                st.markdown(f"[Send via WhatsApp]({whatsapp_link})")
-                st.markdown(f"[Send via Email]({mailto_link})")
-                st.markdown(f"[Call Salesman](tel:{call_number})")
+                # Static links for WhatsApp and Email
+                st.markdown("""
+                Send your requirement in  
+                **Business WhatsApp** - [Click Here](https://wa.me/+97165132219?text=Inquiry)  
+                **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
+                **OR Contact Sales Man** – Mr. Binay +971 50 4815087
+                """)
 
                 if st.button("Clear Cart"):
                     st.session_state['cart'] = []
