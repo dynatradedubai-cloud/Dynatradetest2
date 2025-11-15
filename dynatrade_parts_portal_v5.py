@@ -104,7 +104,6 @@ if page == "Dynatrade – Customer Portal":
                 results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
                 if len(results) > 0:
                     st.write("### Matching Parts")
-                    # Add headers including Required Qty and Add to Cart
                     header_cols = st.columns(len(results.columns) + 2)
                     for i, col_name in enumerate(results.columns):
                         header_cols[i].write(col_name)
@@ -139,10 +138,9 @@ if page == "Dynatrade – Customer Portal":
 
                 st.dataframe(cart_df)  # ✅ Fixed error
 
-                # Static links for WhatsApp and Email
                 st.markdown("""
                 Send your requirement in  
-                **Business WhatsApp** - [Click Here](https://wa.me/+97165132219?text=Inquiry)  
+                **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
                 **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
                 **OR Contact Sales Man** – Mr. Binay +971 50 4815087
                 """)
@@ -208,10 +206,9 @@ if page == "Admin Portal":
                     udf = pd.read_excel(user_file, engine="openpyxl")
                 st.session_state['users_df'] = udf
                 st.success("User credentials updated successfully!")
-                st.dataframe(udf)
-            except Exception as e:
-                st.error(f"Error reading user file: {e}")
+                st.dataframe(udror(f"Error reading user file: {e}")
 
         # Logout option
-       = False
+        if st.button("Logout"):
+            st.session_state['admin_logged_in'] = False
             st.success("Admin logged out successfully!")
