@@ -7,30 +7,6 @@ import requests
 # -------------------- PAGE CONFIG --------------------
 st.set_page_config(page_title="Dynatrade Parts Portal", layout="wide")
 
-# Add custom CSS for light background image and logo
-st.markdown(
-    """
-    <style>
-    body {
-        background-image: url('https://your-image-url/european-truck-car.jpg');
-        background-size: cover;
-        background-attachment: fixed;
-        opacity: 0.95;
-    }
-    .logo {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        width: 150px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Display Dynatrade logo
-st.markdown('<img src="https://your-logo-url/dynatrade-logo.png" class="logo">', unsafe_allow_html=True)
-
 # -------------------- MULTIPAGE NAVIGATION --------------------
 page = st.sidebar.radio("Navigate", ["Dynatrade – Customer Portal", "Admin Portal"])
 
@@ -103,12 +79,11 @@ if page == "Dynatrade – Customer Portal":
         if st.session_state['price_df'] is not None:
             st.write("### Search for Parts")
             search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-            df = st.session_state['price_df']
-            if search_term:
-                results = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+            check_button = st.button("Check")
+            if check_button and search_term:
+                results = st.session_state['price_df'][st.session_state['price_df'].apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
                 if len(results) > 0:
                     st.write("### Matching Parts")
-                    # Add headers including Required Qty and Add to Cart
                     header_cols = st.columns(len(results.columns) + 2)
                     for i, col_name in enumerate(results.columns):
                         header_cols[i].write(col_name)
@@ -118,7 +93,6 @@ if page == "Dynatrade – Customer Portal":
                     for idx, row in results.iterrows():
                         cols = st.columns(len(row) + 2)
                         for i, val in enumerate(row):
-                            # Format numeric values to 2 decimals
                             if isinstance(val, (int, float)):
                                 cols[i].write(f"{val:.2f}")
                             else:
@@ -134,21 +108,16 @@ if page == "Dynatrade – Customer Portal":
             # Cart display
             st.write("### Your Cart")
             if st.session_state['cart']:
-                cart_df = pd.DataFrame(st.session_state['cart'])
-                # Format unit price to 2 decimals
+                cart_df = pd.DataFrame(st.session_state['cart']).reset_index(drop=True)
                 if 'Unit Price in AED' in cart_df.columns:
                     cart_df['Unit Price in AED'] = cart_df['Unit Price in AED'].apply(lambda x: f"{float(x):.2f}" if str(x).replace('.', '', 1).isdigit() else x)
-                st.table(cart_df.style.hide(axis="index"))
+                st.table(cart_df)
 
-                # WhatsApp link with full cart data
-                cart_text = cart_df.to_string(index=False)
-                whatsapp_link = f"https://wa.me/+97165132219?text=Inquiry%20for%20parts:%20{cart_text}"
-                email_link = f"mailto:52etrk51@dynatradegroup.com?subject=Parts%20Inquiry&body={cart_text}"
-
-                st.markdown(f"""
+                # Static links for WhatsApp and Email
+                st.markdown("""
                 Send your requirement in  
-                **Business WhatsApp** - [Click Here]({whatsapp_link})  
-                **OR Email to Sales Man** - [Click Here]({email_link})  
+                **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
+                **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
                 **OR Contact Sales Man** – Mr. Binay +971 50 4815087
                 """)
 
