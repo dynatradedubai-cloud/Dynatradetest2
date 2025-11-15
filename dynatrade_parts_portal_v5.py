@@ -44,12 +44,9 @@ if page == "Dynatrade – Customer Portal":
     st.title("Dynatrade – Customer Portal")
 
     if not st.session_state['customer_logged_in']:
-        with st.form("login_form"):
-            username = st.text_input("Customer Username")
-            password = st.text_input("Password", type="password")
-            submit_login = st.form_submit_button("Login")
-
-        if submit_login:
+        username = st.text_input("Customer Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
             if not st.session_state['users_df'].empty:
                 user_row = st.session_state['users_df'][
                     (st.session_state['users_df']['Username'] == username) &
@@ -139,14 +136,14 @@ if page == "Admin Portal":
     st.title("Admin Portal")
 
     if not st.session_state['admin_logged_in']:
-        with st.form("admin_login_form"):
-            admin_user = st.text_input("Admin Username")
-            admin_pass = st.text_input("Password", type="password")
-            submit_admin = st.form_submit_button("Login")
-
-        if submit_admin and admin_user == "admin" and admin_pass == "admin123":
-            st.session_state['admin_logged_in'] = True
-            st.success("Admin Login Successful")
+        admin_user = st.text_input("Admin Username")
+        admin_pass = st.text_input("Password", type="password")
+        if st.button("Admin Login"):
+            if admin_user == "admin" and admin_pass == "admin123":
+                st.session_state['admin_logged_in'] = True
+                st.success("Admin Login Successful")
+            else:
+                st.error("Invalid Admin Credentials")
     else:
         st.success("Admin Logged In")
 
