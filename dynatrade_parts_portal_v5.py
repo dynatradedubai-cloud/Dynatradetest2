@@ -193,7 +193,8 @@ if page == "Admin Portal":
                 udf = pd.read_excel(user_file, engine="openpyxl")
             st.session_state['users_df'] = udf
             st.session_state['user_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            st.success("User credentials updatedtaframe(udf)
+            st.success("User credentials updated successfully!")
+            st.dataframe(udf)
         except Exception as e:
             st.error(f"Error reading user file: {e}")
 
