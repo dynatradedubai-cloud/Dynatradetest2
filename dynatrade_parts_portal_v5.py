@@ -26,6 +26,11 @@ if 'customer_logged_in' not in st.session_state:
 if 'customer_username' not in st.session_state:
     st.session_state['customer_username'] = ""
 
+# Initialize timestamp keys with fallback
+for key in ['price_upload_time', 'campaign_upload_time', 'user_upload_time']:
+    if key not in st.session_state:
+        st.session_state[key] = None
+
 # Function to get real client IP using ipify
 @st.cache_data(show_spinner=False)
 def get_client_ip():
@@ -65,75 +70,67 @@ if page == "Dynatrade – Customer Portal":
     else:
         st.success(f"Welcome, {st.session_state['customer_username']}!")
 
-        # Campaign file download
-        if st.session_state['campaign_file']:
-            st.write("### Special Campaign")
-            file_name, file_bytes = st.session_state['campaign_file']
-            b64 = base64.b64encode(file_bytes).decode()
-            href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
-            st.markdown(href, unsafe_allow_html=True)
+    # Campaign file download
+    if st.session_state['campaign_file']:
+        st.write("### Special Campaign")
+        file_name, file_bytes = st.session_state['campaign_file']
+        b64 = base64.b64encode(file_bytes).decode()
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">Download Campaign File</a>'
+        st.markdown(href, unsafe_allow_html=True)
 
-        # Price list search
-        if st.session_state['price_df'] is not None:
-            st.write("### Search for Parts")
-            search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
-            check_search = st.button("Check")  # ✅ Added Check button
+    # Price list search
+    if st.session_state['price_df'] is not None:
+        st.write("### Search for Parts")
+        search_term = st.text_input("Enter Part Number (Reference / Manufacturing / OE)")
+        check_search = st.button("Check")
 
-            df = st.session_state['price_df']
+        df = st.session_state['price_df']
 
-            # ✅ Persist search results in session state
-            if check_search and search_term:
-                st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
+        if check_search and search_term:
+            st.session_state['search_results'] = df[df.apply(lambda row: search_term.lower() in str(row.values).lower(), axis=1)]
 
-            # ✅ Display results if available
-            if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
-                results = st.session_state['search_results']
-                st.write("### Matching Parts")
-                header_cols = st.columns(len(results.columns) + 2)
-                for i, col_name in enumerate(results.columns):
-                    header_cols[i].write(col_name)
-                header_cols[-2].write("Required Qty.")
-                header_cols[-1].write("Add to Cart")
+        if 'search_results' in st.session_state and not st.session_state['search_results'].empty:
+            results = st.session_state['search_results']
+            st.write("### Matching Parts")
+            header_cols = st.columns(len(results.columns) + 2)
+            for i, col_name in enumerate(results.columns):
+                header_cols[i].write(col_name)
+            header_cols[-2].write("Required Qty.")
+            header_cols[-1].write("Add to Cart")
 
-                for idx, row in results.iterrows():
-                    cols = st.columns(len(row) + 2)
-                    for i, val in enumerate(row):
-                        cols[i].write(val)
-                    qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
-                    if cols[-1].button("Add", key=f"add_{idx}"):
-                        item = row.to_dict()
-                        if 'Unit Price' in item:
-                            item['Unit Price'] = round(float(item['Unit Price']), 2)
-                        item['Required Qty'] = qty
-                        st.session_state['cart'].append(item)
-            elif check_search:
-                st.warning("No matching parts found.")
+            for idx, row in results.iterrows():
+                cols = st.columns(len(row) + 2)
+                for i, val in enumerate(row):
+                    cols[i].write(val)
+                qty = cols[-2].number_input("Qty", min_value=1, value=1, key=f"qty_{idx}")
+                if cols[-1].button("Add", key=f"add_{idx}"):
+                    item = row.to_dict()
+                    if 'Unit Price' in item:
+                        item['Unit Price'] = round(float(item['Unit Price']), 2)
+                    item['Required Qty'] = qty
+                    st.session_state['cart'].append(item)
+        elif check_search:
+            st.warning("No matching parts found.")
 
-        # Cart display
-        st.write("### Your Cart")
-        if st.session_state['cart']:
-            cart_df = pd.DataFrame(st.session_state['cart'])
-            if 'Unit Price' in cart_df.columns:
-                cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
-            st.dataframe(cart_df)
+    # Cart display
+    st.write("### Your Cart")
+    if st.session_state['cart']:
+        cart_df = pd.DataFrame(st.session_state['cart'])
+        if 'Unit Price' in cart_df.columns:
+            cart_df['Unit Price'] = cart_df['Unit Price'].apply(lambda x: f"{float(x):.2f}")
+        st.dataframe(cart_df)
+    else:
+        st.write("Cart is empty.")
 
-            st.markdown("""
-            Send your requirement in **Business WhatsApp** - https://wa.me/+97165132219?text=Inquiry  
-            **OR Email to Sales Man** - 52etrk51@dynatradegroup.com  
-            **OR Contact Sales Man** – Mr. Binay +971 50 4815087
-            """)
+    if st.button("Clear Cart"):
+        st.session_state['cart'] = []
+        st.session_state.pop('search_results', None)
+        st.success("Cart and search results cleared successfully!")
 
-            if st.button("Clear Cart"):
-                st.session_state['cart'] = []
-                st.session_state.pop('search_results', None)  # ✅ Clear matching parts
-                st.success("Cart and search results cleared successfully!")
-        else:
-            st.write("Cart is empty.")
-
-        if st.button("Logout"):
-            st.session_state['customer_logged_in'] = False
-            st.session_state['customer_username'] = ""
-            st.success("Logged out successfully!")
+    if st.button("Logout"):
+        st.session_state['customer_logged_in'] = False
+        st.session_state['customer_username'] = ""
+        st.success("Logged out successfully!")
 
 # ---------------- ADMIN PORTAL ----------------
 if page == "Admin Portal":
@@ -168,8 +165,7 @@ if page == "Admin Portal":
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
-    if 'price_upload_time' in st.session_state:
-        st.write(f"Last uploaded: {st.session_state['price_upload_time']}")
+    st.write(f"**Last Price List Upload:** {st.session_state['price_upload_time'] or 'No file uploaded yet'}")
 
     # Upload Campaign File
     st.write("### Upload Campaign File")
@@ -179,8 +175,7 @@ if page == "Admin Portal":
         st.session_state['campaign_upload_time'] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         st.success("Campaign File uploaded successfully! It will be visible to customers as a download link.")
 
-    if 'campaign_upload_time' in st.session_state:
-        st.write(f"Last uploaded: {st.session_state['campaign_upload_time']}")
+    st.write(f"**Last Campaign File Upload:** {st.session_state['campaign_upload_time'] or 'No file uploaded yet'}")
 
     # Upload User Credentials
     st.write("### Upload User Credentials")
@@ -198,8 +193,7 @@ if page == "Admin Portal":
         except Exception as e:
             st.error(f"Error reading user file: {e}")
 
-    if 'user_upload_time' in st.session_state:
-        st.write(f"Last uploaded: {st.session_state['user_upload_time']}")
+    st.write(f"**Last User Credentials Upload:** {st.session_state['user_upload_time'] or 'No file uploaded yet'}")
 
     # Logout option
     if st.button("Logout"):
